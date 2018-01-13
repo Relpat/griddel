@@ -1,12 +1,13 @@
 function Gridfield(config) {
 
+    _that = this;
     // basic configs
     this.x = null;
     this.y = null;
     this.isBlocked = false;
-
     // vars
     var object;
+    this._object = object;
 
     /**
      * setter object
@@ -15,6 +16,7 @@ function Gridfield(config) {
      */
     this.setObject = function(newObject){
         object = newObject;
+        _that._object = object;
     }
 
     /**
