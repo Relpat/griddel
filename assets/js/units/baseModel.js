@@ -60,69 +60,91 @@ BaseModel.prototype.move = function (delta) {
 
             var vectorUnit = new Victor(this.position.x, this.position.y);
             var vectorTarget = new Victor(targetPathObject.position.x, targetPathObject.position.y);
+            var speed = this.speed * delta;
 
             // var distance = vectorUnit.distanceSq(vectorTarget);
 
+
+            var distanceY = vectorUnit.absDistanceY(vectorTarget),
+                timeY = distanceY / speed;
+
+            var distanceX = vectorUnit.absDistanceX(vectorTarget),
+                timeX = distanceX / speed;
+
+
             // todo: DO A BETTER COLLISION-DETECTION, pls...
             if (
-                vectorUnit.absDistanceX(vectorTarget)
-                > fieldSize) {
+                timeX > 1) {
                 if (
                     this.position.x <
                     targetPathObject.position.x
                 ) {
-                    this.position.x += this.speed * delta;
+                    this.position.x += speed;
                 } else {
-                    this.position.x -= this.speed * delta;
+                    this.position.x -= speed;
                 }
             }
 
-            if (
-                vectorUnit.absDistanceY(vectorTarget)
-                > fieldSize) {
 
+            if (
+                timeY > 1) {
                 if (
                     this.position.y <
                     targetPathObject.position.y
                 ) {
-                    this.position.y += this.speed * delta;
+                    this.position.y += speed;
                 } else {
-                    this.position.y -= this.speed * delta;
+                    this.position.y -= speed;
                 }
+            }
+
+
+            // is on same field
+            if (timeY >= 0 && timeY <= 1
+                &&
+                timeX >= 0 && timeX <= 1
+            ) {
+
+                this.gamefield.current = targetPathObject;
+
+                this.gamefield.x = targetPathObject.gamefield.x;
+                this.gamefield.y = targetPathObject.gamefield.y;
+
+                this.gamefield.targetPath.shift();
             }
 
             /*
             Collision detection
             and remove target
              */
-            if (
-                this.position.x < targetPathObject.position.x + targetPathObject.width &&
-                this.position.x + this.width > targetPathObject.position.x &&
-                this.position.y < targetPathObject.position.y + targetPathObject.height &&
-                this.height + this.position.y > targetPathObject.position.y) {
-                // collision detected!
+            // if (
+            //     this.position.x < targetPathObject.position.x + targetPathObject.width &&
+            //     this.position.x + this.width > targetPathObject.position.x &&
+            //     this.position.y < targetPathObject.position.y + targetPathObject.height &&
+            //     this.position.y + this.height > targetPathObject.position.y) {
+            //     // collision detected!
+            //
+            //     // todo: create setCurrent();
+            //     this.gamefield.current = targetPathObject;
+            //
+            //     this.gamefield.x = targetPathObject.gamefield.x;
+            //     this.gamefield.y = targetPathObject.gamefield.y;
+            //
+            //     this.gamefield.targetPath.shift();
+            // }
 
-                // todo: create setCurrent();
-                this.gamefield.current = targetPathObject;
+            if (this.gamefield.targetedObject) {
+                if (
+                    this.gamefield.x === this.gamefield.targetedObject.gamefield.x
+                    && this.gamefield.y === this.gamefield.targetedObject.gamefield.y) {
 
-                this.gamefield.x = targetPathObject.gamefield.x;
-                this.gamefield.y = targetPathObject.gamefield.y;
-                this.gamefield.targetPath.shift();
-
-                if (this.gamefield.targetedObject) {
-                    if (
-                        this.gamefield.x === this.gamefield.targetedObject.gamefield.x
-                        && this.gamefield.y === this.gamefield.targetedObject.gamefield.y) {
-
-                        this.gamefield.targetPath = [];
-                        if (this.gamefield.targetedObject) {
-                            if (this.gamefield.targetedObject.parent) {
-                                this.gamefield.targetedObject.parent.removeChild(this.gamefield.targetedObject)
-                            }
+                    this.gamefield.targetPath = [];
+                    if (this.gamefield.targetedObject) {
+                        if (this.gamefield.targetedObject.parent) {
+                            this.gamefield.targetedObject.parent.removeChild(this.gamefield.targetedObject)
                         }
-
-
                     }
+
                 }
             }
             // if (this.gamefield.targetPath.length < numberOfDummyBunnys) {

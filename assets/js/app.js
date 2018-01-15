@@ -1,12 +1,20 @@
 // basic confs
-var width = 1920,
-    height = 1080,
-    fieldSize = 10,
-    numberOfQuadraticFields = 200,
+var runGame = false,
+    scrollSpeed = 20,
+    width = 2000,
+    height = 2000,
+    fieldSize = 30,
     numberOfQuadraticFieldsX = Math.round(width / fieldSize),
     numberOfQuadraticFieldsY = Math.round(height / fieldSize);
 
-var numberOfDummyBunnys = 50;
+var numberOfDummyBunnys = 300;
+
+if(height / fieldSize < numberOfDummyBunnys){
+    numberOfDummyBunnys = Math.round(height / fieldSize) - 1;
+}
+if(width / fieldSize < numberOfDummyBunnys){
+    numberOfDummyBunnys = Math.round(height / fieldSize) - 1;
+}
 
 
 // start app
@@ -14,27 +22,32 @@ var app = new PIXI.Application(width, height, {backgroundColor: 0x1099bb});
 document.body.appendChild(app.view);
 
 // containers etc
+var gameContainer = new PIXI.Container();
+app.stage.addChild(gameContainer);
 
 var foodContainer = new PIXI.Container();
-app.stage.addChild(foodContainer);
+gameContainer.addChild(foodContainer);
 
 var unitContainer = new PIXI.Container();
-app.stage.addChild(unitContainer);
+gameContainer.addChild(unitContainer);
 
 var container = new PIXI.Container();
-app.stage.addChild(container);
+gameContainer.addChild(container);
 
 
 var config = {
     size: {
-        x: numberOfQuadraticFields,
-        y: numberOfQuadraticFields
+        x: numberOfQuadraticFieldsX,
+        y: numberOfQuadraticFieldsY
     }
 };
 var gamefieldGrid = new Grid(config);
 
 // https://github.com/qiao/PathFinding.js
-var grid = new PF.Grid(numberOfQuadraticFields, numberOfQuadraticFields);
+var grid = new PF.Grid(numberOfQuadraticFieldsX, numberOfQuadraticFieldsY);
+
+console.log(gamefieldGrid);
+console.log(grid);
 
 // ###################
 // let the fun beginn!
@@ -44,7 +57,7 @@ var grid = new PF.Grid(numberOfQuadraticFields, numberOfQuadraticFields);
 initTestApp();
 
 function initTestApp() {
-    function createGridLayout(xIndex, yIndex) {
+    function createGridTouchObject(xIndex, yIndex) {
         var xPos = fieldSize * xIndex;
         var yPos = fieldSize * yIndex;
 
@@ -55,9 +68,9 @@ function initTestApp() {
         graphics.gamefield.y = yIndex;
 
         // interactive shit
-        graphics.interactive = true;
-        graphics.buttonMode = true;
-        graphics.on('pointerup', defineStartAndTarget);
+        // graphics.interactive = true;
+        // graphics.buttonMode = true;
+        // graphics.on('pointerup', defineStartAndTarget);
         // set a fill and line style
         graphics.lineStyle(1, 0x0000FF, 1);
         graphics.beginFill(0xFF700B, 1);
@@ -66,6 +79,9 @@ function initTestApp() {
             fieldSize, fieldSize);
         graphics.endFill();
         graphics.alpha = 0;
+
+        graphics.width = 20;
+        graphics.height = 20;
 
         graphics.position.x = xPos;
         graphics.position.y = yPos;
@@ -77,7 +93,7 @@ function initTestApp() {
 
     for (var iX = 0; iX < numberOfQuadraticFieldsX; iX++) {
         for (var iY = 0; iY < numberOfQuadraticFieldsY; iY++) {
-            var gridGraphicObject = createGridLayout(iX, iY);
+            var gridGraphicObject = createGridTouchObject(iX, iY);
 
             // set object
             var gridField = gamefieldGrid.gamefields[iX][iY];
@@ -95,6 +111,7 @@ function initTestApp() {
         unitContainer.addChild(dummyBunny);
     }
 
+    runGame = true;
 }
 
 // todo: source out, maybe ???
@@ -133,8 +150,8 @@ function defineStartAndTargetDynamic(startObject, targetObject) {
         y: startObject.gamefield.y
     };
     var targetCoords = {
-        x: targetPathObject.gamefield.x,
-        y: targetPathObject.gamefield.y
+        x: targetObject.gamefield.x,
+        y: targetObject.gamefield.y
     };
     var path = gamefieldGrid.getPath(startCoords, targetCoords, grid);
 
@@ -156,45 +173,52 @@ app.ticker.add(
 );
 
 // Listen for animate update
-var idvarime = 9999;
-var idleRandomTime = 100 / (numberOfDummyBunnys / 4 );
-var maxIdvarime = Math.random() * idleRandomTime;
+var idletime = 9999;
+var idleRandomTime = 100 / (numberOfDummyBunnys / 4);
+var maxIdleTime = Math.random() * idleRandomTime;
 
 function appLoop(delta) {
 
-    for (var index in unitContainer.children) {
-        child = unitContainer.children[index];
+    if (runGame) {
 
-        // get the food
-        if (
-            foodContainer.children.length > 0
-            && child.idle === true
-        ) {
-            startObject = child;
-            var randomNumber = Math.round(Math.random() * foodContainer.children.length);
-            if(foodContainer.children[randomNumber]){
-                targetPathObject = foodContainer.children[randomNumber];
-                child.gamefield.targetedObject = targetPathObject;
-                child.gamefield.targetPath = defineStartAndTargetDynamic(startObject, targetPathObject);
+        keyboardInteractions();
+
+
+        for (var index in unitContainer.children) {
+            child = unitContainer.children[index];
+
+            // get the food
+            if (
+                foodContainer.children.length > 0
+                && child.idle === true
+            ) {
+                startObject = child;
+                var randomNumber = Math.round(Math.random() * foodContainer.children.length);
+                if (foodContainer.children[randomNumber]) {
+                    targetPathObject = foodContainer.children[randomNumber];
+                    child.gamefield.targetedObject = targetPathObject;
+                    child.gamefield.targetPath = defineStartAndTargetDynamic(startObject, targetPathObject);
+                }
             }
+
+
+            child.move(delta);
+        }
+
+        // some food movement action
+        if (foodContainer.children.length < numberOfDummyBunnys) {
+            idletime += 1 * delta;
         }
 
 
-        child.move(delta);
-    }
+        // create food
+        if (idletime > maxIdleTime
+            && foodContainer.children.length < numberOfDummyBunnys) {
+            createRandomFood();
+            maxIdleTime = Math.random() * idleRandomTime;
+            idletime = 0;
+        }
 
-    // some food movement action
-    if (foodContainer.children.length < numberOfDummyBunnys) {
-        idvarime += 1 * delta;
-    }
-
-
-    // create food
-    if (idvarime > maxIdvarime
-        && foodContainer.children.length < numberOfDummyBunnys) {
-        createRandomFood();
-        maxIdvarime = Math.random() * idleRandomTime;
-        idvarime = 0;
     }
 }
 
@@ -217,16 +241,73 @@ function createRandomFood() {
 
     food.scale.set(.1, .1);
 
-    gamefieldGrid.gamefields[randomStartX][randomStartY].setObject(food);
+    if (randomStartX >= numberOfQuadraticFieldsX
+        || randomStartY >= numberOfQuadraticFieldsY) {
 
-    foodContainer.addChild(food);
+        createRandomFood();
+    } else {
+
+        gamefieldGrid.gamefields[randomStartX][randomStartY].setObject(food);
+
+        foodContainer.addChild(food);
+    }
 }
 
-// todo: source out, maybe Math.Class
-function getDistance(objectOne, ObjectTwo) {
-    var vec1 = new Victor(objectOne.x, objectOne.y);
-    var vec2 = new Victor(ObjectTwo.x, ObjectTwo.y);
 
-    return vec1.distanceSq(vec2);
+function keyboardInteractions() {
+
+    delta = app.ticker.deltaTime;
+
+    if (keyLeftArrow.isDown) {
+        gameContainer.position.x = gameContainer.position.x + delta * scrollSpeed;
+
+
+        if (gameContainer.position.x > 0) {
+            gameContainer.position.x = 0;
+        }
+    }
+    if (keyRightArrow.isDown) {
+        gameContainer.position.x = gameContainer.position.x - delta * scrollSpeed;
+
+        if (gameContainer.position.x < -width + getWidth()) {
+            gameContainer.position.x = gameContainer.position.x + delta * scrollSpeed;
+        }
+    }
+    if (keyUpArrow.isDown) {
+        gameContainer.position.y = gameContainer.position.y + delta * scrollSpeed;
+
+
+        if (gameContainer.position.y > 0) {
+            gameContainer.position.y = 0;
+        }
+    }
+    if (keyDownArrow.isDown) {
+        gameContainer.position.y = gameContainer.position.y - delta * scrollSpeed;
+
+        if (gameContainer.position.y < -height + getHeight()) {
+            gameContainer.position.y = gameContainer.position.y + delta * scrollSpeed;
+        }
+    }
+
+
 }
 
+function getHeight() {
+    var w = window,
+        d = document,
+        e = d.documentElement,
+        g = d.getElementsByTagName('body')[0],
+        y = w.innerHeight || e.clientHeight || g.clientHeight;
+
+    return y;
+}
+
+function getWidth() {
+    var w = window,
+        d = document,
+        e = d.documentElement,
+        g = d.getElementsByTagName('body')[0],
+        x = w.innerWidth || e.clientWidth || g.clientWidth;
+
+    return x;
+}

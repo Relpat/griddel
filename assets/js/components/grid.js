@@ -36,16 +36,30 @@ function Grid(configs) {
         var startX = startCoords.x,
             startY = startCoords.y,
             endX = endCoords.x,
-            endy = endCoords.y;
+            endY = endCoords.y;
 
-        var gridComputing = grid.clone(); // clone. Needed, else the maingrid is touched
-        var path = finder.findPath(
-            startX, startY,
-            endX, endy,
-            gridComputing
-        );
+        if (startX && startY
+            && endX && endY
+        ) {
+            var gridComputing = grid.clone(); // clone. Needed, else the maingrid is touched
 
-        return path;
+            if (gridComputing) {
+
+                var path = finder.findPath(
+                    startX, startY,
+                    endX, endY,
+                    gridComputing
+                );
+                return path;
+            } else {
+                return [];
+            }
+
+
+        } else {
+            return [];
+        }
+
     }
 
     _gridscope.getPath = getPath;
