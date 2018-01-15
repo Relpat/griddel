@@ -1,0 +1,20 @@
+html{
+    height: 100%;
+    width: 100%;
+    float: left;
+    background: #00b7c6; /* Old browsers */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#7abcff', endColorstr='#4096ee',GradientType=0 ); /* IE6-9 */
+}
+html *{
+    font-family: "Kreon";
+}
+body{
+    background-color: initial;
+
+}
+
+.letter{
+    float: left;
+    width: 100%;
+    font-size: 18px;
+}

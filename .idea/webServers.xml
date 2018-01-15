@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="61642abb-f5c1-4238-b285-6c4eac2ab781" name="relpat" url="http://www.relpat.de">
+        <fileTransfer host="www.relpat.de" port="22" rootFolder="/is/htdocs/wp12243013_ZQG22FJM1A/www" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+      <webServer id="15dc97c8-e0a7-4c01-907f-02d5b0f9cbc6" name="griddel" url="http://www.relpat.de">
+        <fileTransfer host="www.relpat.de" port="22" rootFolder="/is/htdocs/wp12243013_ZQG22FJM1A/www/achtball" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
