@@ -1,24 +1,29 @@
+// code...
+var meter = new FPSMeter();
+
 // basic confs
-var runGame = false,
-    scrollSpeed = 20,
-    width = 2000,
-    height = 2000,
+var scrollSpeed = 20,
+    width = 500,
+    height = 500,
     fieldSize = 30,
     numberOfQuadraticFieldsX = Math.round(width / fieldSize),
     numberOfQuadraticFieldsY = Math.round(height / fieldSize);
+var buildingMode = false;
+var lastVisitedGamefields = [];
 
-var numberOfDummyBunnys = 300;
+// dummythings
+var numberOfDummyBunnys = 5;
+var gameIdletime = 9999;
+var idleRandomTime = 100 / (numberOfDummyBunnys / 4);
+var idleRandomTime = 100;
+var maxIdleTime = Math.random() * idleRandomTime;
 
-if(height / fieldSize < numberOfDummyBunnys){
-    numberOfDummyBunnys = Math.round(height / fieldSize) - 1;
-}
-if(width / fieldSize < numberOfDummyBunnys){
-    numberOfDummyBunnys = Math.round(height / fieldSize) - 1;
-}
+var currentChosenBuilding = 0;
 
 
 // start app
 var app = new PIXI.Application(width, height, {backgroundColor: 0x1099bb});
+app.ticker.stop();
 document.body.appendChild(app.view);
 
 // containers etc
@@ -31,8 +36,8 @@ gameContainer.addChild(foodContainer);
 var unitContainer = new PIXI.Container();
 gameContainer.addChild(unitContainer);
 
-var container = new PIXI.Container();
-gameContainer.addChild(container);
+var gridContainer = new PIXI.Container();
+gameContainer.addChild(gridContainer);
 
 
 var config = {
@@ -46,9 +51,6 @@ var gamefieldGrid = new Grid(config);
 // https://github.com/qiao/PathFinding.js
 var grid = new PF.Grid(numberOfQuadraticFieldsX, numberOfQuadraticFieldsY);
 
-console.log(gamefieldGrid);
-console.log(grid);
-
 // ###################
 // let the fun beginn!
 
@@ -57,6 +59,7 @@ console.log(grid);
 initTestApp();
 
 function initTestApp() {
+
     function createGridTouchObject(xIndex, yIndex) {
         var xPos = fieldSize * xIndex;
         var yPos = fieldSize * yIndex;
@@ -70,23 +73,25 @@ function initTestApp() {
         // interactive shit
         // graphics.interactive = true;
         // graphics.buttonMode = true;
-        // graphics.on('pointerup', defineStartAndTarget);
+        graphics.on('mouseout', hideLastVisitedFields);
+        graphics.on('pointerover', showBuildingPosition);
+        graphics.on('click', buildBuilding);
         // set a fill and line style
-        graphics.lineStyle(1, 0x0000FF, 1);
+        // graphics.lineStyle(1, 0x0000FF, 1);
         graphics.beginFill(0xFF700B, 1);
         graphics.drawRect(
-            fieldSize / 2, fieldSize / 2,
+            0, 0,
             fieldSize, fieldSize);
         graphics.endFill();
         graphics.alpha = 0;
 
-        graphics.width = 20;
-        graphics.height = 20;
+        graphics.width = fieldSize;
+        graphics.height = fieldSize;
 
         graphics.position.x = xPos;
         graphics.position.y = yPos;
 
-        container.addChild(graphics);
+        gridContainer.addChild(graphics);
 
         return graphics;
     }
@@ -106,12 +111,14 @@ function initTestApp() {
         var dummyBunny = new BaseModel(dummySpritePath);
         dummyBunny.createRandomConfigs();
 
-        // console.log(dummyBunny);
-
         unitContainer.addChild(dummyBunny);
     }
 
-    runGame = true;
+
+    currentChosenBuilding = new BaseBuilding(dummySpritePath);
+
+
+    app.ticker.start();
 }
 
 // todo: source out, maybe ???
@@ -173,61 +180,56 @@ app.ticker.add(
 );
 
 // Listen for animate update
-var idletime = 9999;
-var idleRandomTime = 100 / (numberOfDummyBunnys / 4);
-var maxIdleTime = Math.random() * idleRandomTime;
 
 function appLoop(delta) {
+    meter.tick();
 
-    if (runGame) {
+    keyboardInteractions();
 
-        keyboardInteractions();
+    for (var index in unitContainer.children) {
+        unit = unitContainer.getChildAt(index);
 
+        // get the food
+        if (
+            foodContainer.children.length > 0
+            && unit.idle === true
+        ) {
+            var randomNumber = getRandomInt(0,foodContainer.children.length);
+            if (foodContainer.children[randomNumber]) {
+                targetPathObject = foodContainer.getChildAt(randomNumber);
 
-        for (var index in unitContainer.children) {
-            child = unitContainer.children[index];
-
-            // get the food
-            if (
-                foodContainer.children.length > 0
-                && child.idle === true
-            ) {
-                startObject = child;
-                var randomNumber = Math.round(Math.random() * foodContainer.children.length);
-                if (foodContainer.children[randomNumber]) {
-                    targetPathObject = foodContainer.children[randomNumber];
-                    child.gamefield.targetedObject = targetPathObject;
-                    child.gamefield.targetPath = defineStartAndTargetDynamic(startObject, targetPathObject);
-                }
+                unit.gamefield.targetedObject = targetPathObject;
+                var path =  defineStartAndTargetDynamic(unit, targetPathObject);
+                unit.gamefield.targetPath = path;
             }
-
-
-            child.move(delta);
         }
 
-        // some food movement action
-        if (foodContainer.children.length < numberOfDummyBunnys) {
-            idletime += 1 * delta;
-        }
-
-
-        // create food
-        if (idletime > maxIdleTime
-            && foodContainer.children.length < numberOfDummyBunnys) {
-            createRandomFood();
-            maxIdleTime = Math.random() * idleRandomTime;
-            idletime = 0;
-        }
-
+        unit.move(showPath = true);
     }
+
+
+    // some food movement action
+    if (foodContainer.children.length < numberOfDummyBunnys) {
+        gameIdletime += 1 * delta;
+    }
+
+
+    // create food
+    if (gameIdletime > maxIdleTime
+        && foodContainer.children.length < numberOfDummyBunnys) {
+        createRandomFood();
+        maxIdleTime = Math.random() * idleRandomTime;
+        gameIdletime = 0;
+    }
+
 }
 
-// todo: source out, maybe DummyContent
+// todo: source out, maybe DummyContents
 function createRandomFood() {
     var food = PIXI.Sprite.fromImage('assets/basics/burger.png');
 
-    var randomStartX = Math.round(Math.random() * numberOfQuadraticFieldsX);
-    var randomStartY = Math.round(Math.random() * numberOfQuadraticFieldsY);
+    var randomStartX = createRandomPosX();
+    var randomStartY = createRandomPosY();
 
     // todo: !important: create interaction object. Pixi.Sprite with additional settings
     food.gamefield = [];
@@ -235,62 +237,27 @@ function createRandomFood() {
     food.gamefield.y = randomStartY;
 
     // Set the initial position
-    food.anchor.set(.5);
+    // food.anchor.set(0.5);
     food.x = fieldSize * randomStartX;
     food.y = fieldSize * randomStartY;
 
-    food.scale.set(.1, .1);
+    food.scale.set(.25, .25);
 
     if (randomStartX >= numberOfQuadraticFieldsX
-        || randomStartY >= numberOfQuadraticFieldsY) {
-
+        || randomStartY >= numberOfQuadraticFieldsY
+    ) {
         createRandomFood();
     } else {
 
-        gamefieldGrid.gamefields[randomStartX][randomStartY].setObject(food);
+        if (gamefieldGrid.gamefields[randomStartX][randomStartY].isBlocked) {
+            createRandomFood();
+        }
+        gamefieldGrid.gamefields[randomStartX][randomStartY].isBlocked = true;
 
         foodContainer.addChild(food);
     }
 }
 
-
-function keyboardInteractions() {
-
-    delta = app.ticker.deltaTime;
-
-    if (keyLeftArrow.isDown) {
-        gameContainer.position.x = gameContainer.position.x + delta * scrollSpeed;
-
-
-        if (gameContainer.position.x > 0) {
-            gameContainer.position.x = 0;
-        }
-    }
-    if (keyRightArrow.isDown) {
-        gameContainer.position.x = gameContainer.position.x - delta * scrollSpeed;
-
-        if (gameContainer.position.x < -width + getWidth()) {
-            gameContainer.position.x = gameContainer.position.x + delta * scrollSpeed;
-        }
-    }
-    if (keyUpArrow.isDown) {
-        gameContainer.position.y = gameContainer.position.y + delta * scrollSpeed;
-
-
-        if (gameContainer.position.y > 0) {
-            gameContainer.position.y = 0;
-        }
-    }
-    if (keyDownArrow.isDown) {
-        gameContainer.position.y = gameContainer.position.y - delta * scrollSpeed;
-
-        if (gameContainer.position.y < -height + getHeight()) {
-            gameContainer.position.y = gameContainer.position.y + delta * scrollSpeed;
-        }
-    }
-
-
-}
 
 function getHeight() {
     var w = window,
@@ -310,4 +277,20 @@ function getWidth() {
         x = w.innerWidth || e.clientWidth || g.clientWidth;
 
     return x;
+}
+
+/**
+ * Returns a random integer between min (inclusive) and max (inclusive)
+ * Using Math.round() will give you a non-uniform distribution!
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function createRandomPosX() {
+    return getRandomInt(0, (numberOfQuadraticFieldsX - 1))
+}
+
+function createRandomPosY() {
+    return getRandomInt(0, (numberOfQuadraticFieldsY - 1))
 }

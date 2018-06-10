@@ -33,31 +33,39 @@ function Grid(configs) {
     }
 
     function getPath(startCoords, endCoords, grid) {
-        var startX = startCoords.x,
-            startY = startCoords.y,
-            endX = endCoords.x,
-            endY = endCoords.y;
+        try {
+            // instantiation
 
-        if (startX && startY
-            && endX && endY
-        ) {
-            var gridComputing = grid.clone(); // clone. Needed, else the maingrid is touched
+            var startX = startCoords.x,
+                startY = startCoords.y,
+                endX = endCoords.x,
+                endY = endCoords.y;
 
-            if (gridComputing) {
+            if (startX !== null && startY !== null
+                && endX !== null && endY !== null
+            ) {
+                var gridComputing = grid.clone(); // clone. Needed, else the maingrid is touched
 
-                var path = finder.findPath(
-                    startX, startY,
-                    endX, endY,
-                    gridComputing
-                );
-                return path;
+                if (gridComputing) {
+
+                    var path = finder.findPath(
+                        startX, startY,
+                        endX, endY,
+                        gridComputing
+                    );
+                    return path;
+                } else {
+                    return [];
+                }
+
+
             } else {
                 return [];
             }
-
-
-        } else {
+        } catch (e) {
+            //catchcode
             return [];
+            console.debug("\nError:\n", e);
         }
 
     }

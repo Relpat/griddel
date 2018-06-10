@@ -1,6 +1,4 @@
 function Gridfield(config) {
-
-    _that = this;
     // basic configs
     this.x = null;
     this.y = null;
@@ -16,7 +14,8 @@ function Gridfield(config) {
      */
     this.setObject = function(newObject){
         object = newObject;
-        _that._object = object;
+        this._object = newObject;
+        this.isBlocked = false;
     }
 
     /**
@@ -32,10 +31,13 @@ function Gridfield(config) {
      * delete object
      */
     this.deleteObject = function () {
+        object.parent.removeChild(object); // remove from container
+
+        // reset this
         this._object = null;
         object = null;
+        this.isBlocked = false;
     }
-
 
     /**
      *
